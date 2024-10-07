@@ -9,7 +9,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddDbContext<LinksContext>
     (o => o.UseSqlite(builder.Configuration.GetConnectionString("LinksContext")));
-
+builder.Services.AddScoped<UrlService>();   
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(x => 
     { 
@@ -74,19 +74,13 @@ app.MapGet("/{id}", async Task<Results<NotFound, RedirectHttpResult>>
 
 // Create a new short link
 app.MapPost("/", async Task<Results<BadRequest, CreatedAtRoute<Link>>>
-    ([FromBody] string newUrl, LinksContext context) =>
-    { 
-        // add validation to input here
-        string newId = UrlService.GenerateShortUrl(newUrl);
-        var exists = await context.Links.FindAsync(newId);
-        if (exists == null)
-        {
-            Link newLink = new Link { fullUrl = newUrl, id = UrlService.GenerateShortUrl(newId) };
-            var created = await context.Links.AddAsync(newLink);
-            return TypedResults.CreatedAtRoute(created.Entity, "ResolveShortLink", new { id = created.Entity.id }); 
-        }
-        // If we have a short has collision, just return bad request for now - handle iterations in future update
-        return TypedResults.BadRequest();
+    ([FromBody] string incomingUrl, LinksContext context, UrlService urlService) =>
+    {
+        string newId = await urlService.GenerateShortUrl(incomingUrl);
+        Link newLink = new Link { fullUrl = incomingUrl, id = newId };
+        var created = await context.Links.AddAsync(newLink);
+        return TypedResults.CreatedAtRoute(created.Entity, "ResolveShortLink", new { id = created.Entity.id }); 
+        
     }).RequireAuthorization("RequireCreate");
 
 app.UseHttpsRedirection();

@@ -52,35 +52,29 @@ var app = builder.Build();
 
 // Return the link object
 app.MapGet("/links/{id}", async Task<Results<NotFound, Ok<Link>>>
-    ([FromRoute] string id, LinksContext context) =>
+    ([FromRoute] string id, UrlService urlService) =>
     {
-        Link? link = await context.Links.FindAsync(id);
-
+        Link? link = await urlService.GetLinkAsync(id);
         if (link == null) return TypedResults.NotFound();
-        
         return TypedResults.Ok<Link>(link);
     });
 
 // Redirect from short link to original url
 app.MapGet("/{id}", async Task<Results<NotFound, RedirectHttpResult>>
-    ([FromRoute] string id, LinksContext context) =>
+    ([FromRoute] string id, UrlService urlService) =>
     {
-        Link? link = await context.Links.FindAsync(id);
-        
+        Link? link = await urlService.GetLinkAsync(id);
         if (link == null) return TypedResults.NotFound();
-        
         return TypedResults.Redirect(link.fullUrl);
     }).WithName("ResolveShortLink");
 
 // Create a new short link
 app.MapPost("/", async Task<Results<BadRequest, CreatedAtRoute<Link>>>
-    ([FromBody] string incomingUrl, LinksContext context, UrlService urlService) =>
+    ([FromBody] string incomingUrl, UrlService urlService) =>
     {
-        string newId = await urlService.GenerateShortUrl(incomingUrl);
-        Link newLink = new Link { fullUrl = incomingUrl, id = newId };
-        var created = await context.Links.AddAsync(newLink);
-        return TypedResults.CreatedAtRoute(created.Entity, "ResolveShortLink", new { id = created.Entity.id }); 
-        
+        var created = await urlService.CreateLinkAsync(incomingUrl);
+        if (created == null) return TypedResults.BadRequest();
+        return TypedResults.CreatedAtRoute(created, "ResolveShortLink", new { id = created.id }); 
     }).RequireAuthorization("RequireCreate");
 
 app.UseHttpsRedirection();

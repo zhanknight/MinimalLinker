@@ -4,12 +4,16 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.OpenApi.Models;
 using MinimalLinker;
+using Microsoft.Extensions.Caching.Memory;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddDbContext<LinksContext>
     (o => o.UseSqlite(builder.Configuration.GetConnectionString("LinksContext")));
-builder.Services.AddScoped<UrlService>();   
+
+builder.Services.AddScoped<UrlService>();  
+builder.Services.AddMemoryCache(o => { o.SizeLimit = 64; o.CompactionPercentage = .5; }); 
+
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(x => 
     { 

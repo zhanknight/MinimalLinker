@@ -52,7 +52,7 @@ var app = builder.Build();
 
 // Return the link object
 app.MapGet("/links/{id}", async Task<Results<NotFound, Ok<Link>>>
-    ([FromRoute] string id, UrlService urlService) =>
+    ([FromRoute] int id, UrlService urlService) =>
     {
         Link? link = await urlService.GetLinkAsync(id);
         if (link == null) return TypedResults.NotFound();
@@ -61,7 +61,7 @@ app.MapGet("/links/{id}", async Task<Results<NotFound, Ok<Link>>>
 
 // Redirect from short link to original url
 app.MapGet("/{id}", async Task<Results<NotFound, RedirectHttpResult>>
-    ([FromRoute] string id, UrlService urlService) =>
+    ([FromRoute] int id, UrlService urlService) =>
     {
         Link? link = await urlService.GetLinkAsync(id);
         if (link == null) return TypedResults.NotFound();

@@ -1,5 +1,3 @@
-using System.Security.Cryptography;
-using System.Text;
 using Microsoft.EntityFrameworkCore;
 
 namespace MinimalLinker;
@@ -12,9 +10,9 @@ public class UrlService
        _links = linksContext; 
     }
 
-    public async Task<Link> GetLinkAsync(string shortHash)
+    public async Task<Link> GetLinkAsync(int id)
     {
-        Link? link = await _links.Links.FindAsync(shortHash);
+        Link? link = await _links.Links.FindAsync(id);
         return link;
     }
 
@@ -27,10 +25,8 @@ public class UrlService
 
         var alreadyShortened = await CheckIfLinkExists(newUrl.AbsoluteUri);
         if (alreadyShortened != null) return alreadyShortened;
-
-        var newShortHash = GenerateShortUrl(newUrl);
         
-        Link newLink = new Link { fullUrl = newUrl.AbsoluteUri, id = newShortHash };
+        Link newLink = new Link { fullUrl = newUrl.AbsoluteUri, id = 0};
         await _links.Links.AddAsync(newLink);
         await _links.SaveChangesAsync();
         return newLink;        
@@ -39,15 +35,5 @@ public class UrlService
     {
         var exists = await _links.Links.FirstOrDefaultAsync(x => x.fullUrl == inputUrl);
         return exists ?? null;
-    }
-    
-    private string GenerateShortUrl(Uri inputUrl)
-    {
-        string shortHash = Convert.ToHexString
-            (SHA1.HashData(Encoding.UTF8.GetBytes(inputUrl.AbsoluteUri)));   
-        shortHash = shortHash.Substring(0,10);
-        // need to check for collisions here or, more ideally, let the database generate unique ids
-        return shortHash;
-    }
-    
+    }   
 }
